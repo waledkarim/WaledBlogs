@@ -9,6 +9,7 @@ const Navbar = () => {
     const [openUserNavigationPanel, setOpenUserNavigationPanel] = useState(false);
 
     const { userAuth: { access_token, profile_img }, setAuthUser } = useContext(UserContext);
+    console.log(access_token);
 
     return (
         <>
