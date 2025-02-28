@@ -11,7 +11,7 @@ const blogStructure = {
   content: [],
   tags: [],
   description: "",
-  author: { personal_info: {} },
+  author: { personal_info: {} }, //todo
 
 };
 
@@ -30,7 +30,7 @@ const Editor = () => {
     <EditorContext.Provider value={{ blog, setBlog, editorState, setEditorState, textEditor, setTextEditor }}>
 
       {
-        access_token == null ? <Navigate to="/signin" /> :
+        access_token === null ? <Navigate to="/signin" /> :
         (editorState === "editor" ? <BlogEditor /> : <PublishForm />)
       }
 
