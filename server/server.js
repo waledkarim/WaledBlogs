@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv/config';
 import bcrypt from 'bcrypt';
+import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import User from './Schema/User.js';
@@ -13,6 +14,10 @@ const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/; // regex for pa
 const app = express();
 
 app.use(express.json());
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+}));
 
 
 mongoose.connect(process.env.DB_LOCATION, {
@@ -42,6 +47,8 @@ const formatDataToSend = (user) => {
         access_token
     };
 };
+
+
 
 app.post("/signup", async (req, res) => {
     let { fullname, email, password } = req.body;

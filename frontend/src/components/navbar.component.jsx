@@ -1,9 +1,14 @@
 import logo from "../imgs/logo.png";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Link, Outlet } from "react-router-dom";
+import { UserContext } from "../App";
+import UserNavigationPanel from "./user-navigation.component";
 
 const Navbar = () => {
     const [searchBoxVisibility, setSearchBoxVisibility] = useState(false);
+    const [openUserNavigationPanel, setOpenUserNavigationPanel] = useState(false);
+
+    const { userAuth: { access_token, profile_img }, setAuthUser } = useContext(UserContext);
 
     return (
         <>
@@ -41,13 +46,39 @@ const Navbar = () => {
 
                     </Link>
 
-                    <Link className="btn-dark py-2" to="/signin">
-                        Sign In
-                    </Link>
+                    {
+                        access_token ? 
+                            (
+                                <>
+                                    <Link to="/dashboard/notification">
+                                        <button className="w-12 h-12 rounded-full bg-grey relative hover:bg-black/10">
+                                            <i className="fi fi-rr-bell text-2xl block mt-1"></i>
+                                        </button>
+                                    </Link>
 
-                    <Link className="btn-light py-2 hidden md:block" to="/signup">
-                        Sign Up
-                    </Link>
+                                    <div className="relative" onBlur={() => setTimeout(() => setOpenUserNavigationPanel(false), 200)} onClick={() => setOpenUserNavigationPanel(!openUserNavigationPanel)}>
+                                        <button className="w-12 h-12 mt-1">
+                                            <img src={profile_img} className="w-full h-full object-cover rounded-full" />
+                                        </button>
+                                        {
+                                            openUserNavigationPanel && <UserNavigationPanel />
+                                        }
+                                    </div>
+                                </>
+                            )
+                        :
+                            (
+                                <>
+                                    <Link className="btn-dark py-2" to="/signin">
+                                        Sign In
+                                    </Link>
+
+                                    <Link className="btn-light py-2 hidden md:block" to="/signup">
+                                        Sign Up
+                                    </Link>
+                                </>
+                            )
+                    }
 
                 </div>
 
