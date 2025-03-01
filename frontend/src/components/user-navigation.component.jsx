@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import AnimationWrapper from "../common/page-animation";
+import AnimationWrapper from "../common/AnimationWrapper";
 import { Link } from "react-router-dom";
 import { UserContext } from "../App";
 import { removeFromSession } from "../common/session";

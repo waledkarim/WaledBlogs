@@ -1,5 +1,5 @@
 import { toast } from "react-hot-toast";
-import AnimationWrapper from "../common/page-animation";
+import AnimationWrapper from "../common/AnimationWrapper";
 import { useContext } from "react";
 import { EditorContext } from "../pages/editor.pages";
 import Tag from "./tags.component";
@@ -90,30 +90,62 @@ const PublishForm = () => {
           tags,
           draft: false
       };
+
+      let file = base64ToFile(banner, "image.png");
+    
+      console.log(file); // File object
   
-      axios.post(import.meta.env.VITE_SERVER_DOMAIN + "/create-blog", blogObj, {
-          headers: {
-              "Authorization": `Bearer ${access_token}`
-          }
-      })
-      .then(() => {
-            e.target.classList.remove("disable");
+    //   axios.post(import.meta.env.VITE_SERVER_DOMAIN + "/create-blog", blogObj, {
+    //       headers: {
+    //           "Authorization": `Bearer ${access_token}`
+    //       }
+    //   })
+    //   .then(() => {
+    //         e.target.classList.remove("disable");
     
-            toast.dismiss(loadingToast);
-            toast.success("Published 👍");
+    //         toast.dismiss(loadingToast);
+    //         toast.success("Published 👍");
     
-            setTimeout(() => {
-                navigate("/");
-            }, 2000);
-      })
-      .catch(({ response }) => {
+    //         setTimeout(() => {
+    //             navigate("/");
+    //         }, 2000);
+    //   })
+    //   .catch(({ response }) => {
 
-          e.target.classList.remove("disable");
-          toast.dismiss(loadingToast);
-          return toast.error(response.data.error);
+    //       e.target.classList.remove("disable");
+    //       toast.dismiss(loadingToast);
+    //       return toast.error(response.data.error);
 
-      });
+    //   });
+
     };
+
+    function base64ToFile(base64String, fileName) {
+        // Split the base64 string to get the mime type and the actual base64 data
+        let arr = base64String.split(',');
+        let mimeMatch = arr[0].match(/:(.*?);/);
+        let mime = mimeMatch ? mimeMatch[1] : 'image/png'; // Default to PNG if mime type is unknown
+    
+        // Decode the base64 string
+        let byteString = atob(arr[1]);
+    
+        // Create an array buffer
+        let arrayBuffer = new ArrayBuffer(byteString.length);
+        let uint8Array = new Uint8Array(arrayBuffer);
+    
+        // Fill the array buffer with binary data
+        for (let i = 0; i < byteString.length; i++) {
+            uint8Array[i] = byteString.charCodeAt(i);
+        }
+    
+        // Create a Blob with the appropriate mime type
+        let blob = new Blob([uint8Array], { type: mime });
+    
+        // Convert Blob to File
+        return new File([blob], fileName, { type: mime });
+    }
+    
+    
   
 
     return (
@@ -129,12 +161,15 @@ const PublishForm = () => {
 
                     </button>
 
+                    {/* This is the banner image and description section */}
                     <div className="w-full">
 
                           <p className="text-dark-grey mb-5 text-xl">Preview</p>
                           <div className="w-full aspect-video rounded-lg overflow-hidden bg-grey">
 
-                              <img src={banner} />
+                              <img 
+                                src={ banner } 
+                              />
 
                           </div>
                           <h1 className="text-3xl font-medium mt-2 leading-tight line-clamp-1">{title}</h1>
@@ -143,6 +178,7 @@ const PublishForm = () => {
 
                     </div>
 
+                    {/* This is the form section */}
                     <div className="border-grey lg:border-1 lg:pl-8">
 
                             <p className="text-dark-grey mb-2 mt-3">Blog Title</p>

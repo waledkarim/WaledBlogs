@@ -1,7 +1,7 @@
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import AnimationWrapper from "../common/page-animation";
+import AnimationWrapper from "../common/AnimationWrapper";
 import defaultBanner from "../imgs/blog-banner.png";
 import { EditorContext } from "../pages/editor.pages";
 import logo from "../imgs/logo.png";
@@ -13,7 +13,8 @@ import { UserContext } from "../App";
 
 const BlogEditor = () => {
 
-  const { blog, blog: { title, banner, content, tags, description }, setBlog, textEditor, setTextEditor, setEditorState } = useContext(EditorContext);
+  const { blog, blog: {title, banner, content, tags, description}, setBlog, textEditor, setTextEditor, setEditorState } = useContext(EditorContext);
+  const [imgPreview, setImgPreview] = useState(null);
 
   const navigate = useNavigate();
 

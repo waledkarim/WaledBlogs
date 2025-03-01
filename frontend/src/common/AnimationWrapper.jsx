@@ -6,10 +6,11 @@ const AnimationWrapper = ({ children, keyValue, initial = { opacity: 0 }, animat
     <AnimatePresence>
 
         <motion.div
-        key={keyValue}
-        initial={initial}
-        animate={animate}
-        transition={transition}>
+          key={keyValue}
+          initial={initial}
+          animate={animate}
+          transition={transition}
+        >
 
             {children}
 

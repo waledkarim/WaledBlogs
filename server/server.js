@@ -1,5 +1,4 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv/config';
 import bcrypt from 'bcrypt';
 import cors from 'cors';
@@ -7,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import User from './Schema/User.js';
 import Blog from './Schema/Blog.js';
-import cloudinary from './lib/cloudinary.js';
+import connectDB from './lib/db.js';
 
 const PORT = 3000;
 const emailRegex = /^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,3}$/; // regex for email
@@ -21,10 +20,6 @@ app.use(cors({
     credentials: true,
 }));
 
-
-mongoose.connect(process.env.DB_LOCATION, {
-    autoIndex: true
-});
 
 
 const verifyJWT = (req, res, next) => {
@@ -72,27 +67,37 @@ const formatDataToSend = (user) => {
 };
 
 
-//todo
-app.get('get-upload-url', async (req, res) => {
 
-    try {
+app.get("/trending-blogs", (req, res) => {
+    Blog.find({ draft: false })
+        .populate("author", "personal_info.profile_img personal_info.username personal_info.fullname -_id")
+        .sort({ "activity.total_read": -1, "activity.total_likes": -1, "publishedAt": -1 })
+        .select("blog_id title publishedAt -_id")
+        .limit(5)
+        .then(blogs => {
+            return res.status(200).json({ blogs });
+        })
+        .catch(err => {
+            return res.status(500).json({ error: err.message });
+        });
+});
 
-        const uploadResponse = await cloudinary.uploader.upload(profilePic);
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { profilePic: uploadResponse.secure_url },
-      { new: true }
-    );
+app.post('/latest-blogs', (req, res) => {
 
-    res.status(200).json(updatedUser);
-        
-    } catch (error) {
-        console.log("Error in get-upload-url: ", error);
-    }
-    
-})
+    let { page } = req.body;
 
+    Blog.find({ draft: false })
+        .populate("author", "personal_info.profile_img personal_info.username personal_info.fullname -_id")
+        .sort({ "publishedAt": -1 })
+        .select("blog_id title des banner activity tags publishedAt -_id")
+        .then(blogs => {
+            return res.status(200).json({ blogs });
+        })
+        .catch(err => {
+            return res.status(500).json({ error: err.message });
+        });
+});
 
 app.post("/signup", async (req, res) => {
     let { fullname, email, password } = req.body;
@@ -138,8 +143,6 @@ app.post("/signup", async (req, res) => {
 
 });
 
-
-
 app.post("/signin", (req, res) => {
     //todo
     let { email, password } = req.body;
@@ -172,11 +175,11 @@ app.post("/signin", (req, res) => {
         });
 });
 
-
-app.post('/create-blog', verifyJWT, (req, res) => {
+app.post('/create-blog', verifyJWT, async (req, res) => {
 
     const authorId = req.user;
     let { title, description, banner, tags, content, draft } = req.body;
+    console.log(banner);
 
     //Validation
     {
@@ -203,47 +206,68 @@ app.post('/create-blog', verifyJWT, (req, res) => {
         }
     }
 
-    tags = tags.map(tag => tag.toLowerCase());
+    // tags = tags.map(tag => tag.toLowerCase());
 
-    let blog_id = title.replace(/[^a-zA-Z0-9]/g, ' ').replace(/\s+/g, "-").trim() + nanoid();
+    // let blog_id = title.replace(/[^a-zA-Z0-9]/g, ' ').replace(/\s+/g, "-").trim() + nanoid();
 
-    let blog = new Blog({
-        title, 
-        description, 
-        banner, 
-        content, 
-        tags, 
-        author: authorId, blog_id, 
-        draft: Boolean(draft),
-    });
+    // const uploadResponse = await cloudinary.uploader.upload(banner);
 
-    blog
-        .save()
-        .then(blog => {
 
-                let incrementVal = draft ? 0 : 1;
+    // let blog = new Blog({
+    //     title, 
+    //     description, 
+    //     banner: uploadResponse.secure_url, 
+    //     content, 
+    //     tags, 
+    //     author: authorId, blog_id, 
+    //     draft: Boolean(draft),
+    // });
 
-                User.findOneAndUpdate(
-                    { _id: authorId },
-                    { $inc: { "account_info.total_posts": incrementVal }, $push: { "blogs": blog.id } }
-                )
-                .then(user => {
-                    return res.status(200).json({ id: blog.blog_id });
-                })
-                .catch(err => {
-                    return res.status(500).json({ error: "Failed to update total posts number" });
-                });
+    // blog
+    //     .save()
+    //     .then(blog => {
 
-        })
-        .catch((err) => {
-            return res.status(500).json("error: ", err.message);
-        })
+    //             let incrementVal = draft ? 0 : 1;
+
+    //             User.findOneAndUpdate(
+    //                 { _id: authorId },
+    //                 { $inc: { "account_info.total_posts": incrementVal }, $push: { "blogs": blog.id } }
+    //             )
+    //             .then(user => {
+    //                 return res.status(200).json({ id: blog.blog_id });
+    //             })
+    //             .catch(err => {
+    //                 return res.status(500).json({ error: "Failed to update total posts number" });
+    //             });
+
+    //     })
+    //     .catch((err) => {
+    //         return res.status(500).json("error: ", err.message);
+    //     })
 });
 
+app.post("/search-blogs", (req, res) => {
+    let { tag } = req.body;
 
+    let findQuery = { tags: tag, draft: false };
+    let maxLimit = 5;
+
+    Blog.find(findQuery)
+        .populate("author", "personal_info.profile_img personal_info.username personal_info.fullname -_id")
+        .sort({ "publishedAt": -1 })
+        .select("blog_id title des banner activity tags publishedAt -_id")
+        .limit(maxLimit)
+        .then(blogs => {
+            return res.status(200).json({ blogs });
+        })
+        .catch(err => {
+            return res.status(500).json({ error: err.message });
+        });
+});
 
 
 
 app.listen(PORT, () => {
     console.log('Listening on port: ' + PORT);
+    connectDB();
 });
