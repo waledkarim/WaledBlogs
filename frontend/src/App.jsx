@@ -1,17 +1,20 @@
 import { Routes, Route } from "react-router-dom";
-import Navbar from "./components/navbar.component";
+import Navbar from "./components/Navbar.component";
 import UserAuthForm from "./pages/userAuthForm.page";
 import { Toaster } from 'react-hot-toast';
 import { createContext, useEffect, useState } from "react";
 import { lookInSession } from "./common/session";
-import Editor from "./pages/editor.pages";
+import Editor from "./pages/EditorPage.page";
 import HomePage from "./pages/HomePage.page";
+import SearchPage from "./pages/SearchPage.page";
+import PageNotFound from "./pages/404Page.page";
+import ProfilePage from "./pages/ProfilePage.page";
 
 export const UserContext = createContext({});
 
 const App = () => {
 
-    const [userAuth, setUserAuth] = useState({})
+    const [userAuth, setUserAuth] = useState({});
 
     useEffect(() => {
 
@@ -34,6 +37,9 @@ const App = () => {
                     <Route index element={<HomePage />} />
                     <Route path="signin" element={<UserAuthForm type={`sign-in`}/>} />
                     <Route path="signup" element={<UserAuthForm type={`sign-up`}/>} />
+                    <Route path="search/:query" element={<SearchPage/>} />
+                    <Route path="user/:id" element={<ProfilePage/>} />
+                    <Route path="*" element={<PageNotFound/>} />
                 </Route>
                 
             </Routes>

@@ -1,3 +1,4 @@
+//todo
 import Embed from "@editorjs/embed";
 import List from "@editorjs/list";
 import Image from "@editorjs/image";
@@ -5,19 +6,7 @@ import Header from "@editorjs/header";
 import Quote from "@editorjs/quote";
 import Marker from "@editorjs/marker";
 import InlineCode from "@editorjs/inline-code";
-
-//todo
-// Function to handle image uploads via file
-const uploadImageByFile = (e) => {
-//   return uploadImage(e).then((url) => {
-//     if (url) {
-//       return {
-//         success: 1,
-//         file: { url }
-//       };
-//     }
-//   });
-};
+import axios from "axios";
 
 //todo
 // Function to handle image uploads via URL
@@ -49,8 +38,30 @@ export const tools = {
     class: Image,
     config: {
       uploader: {
-        uploadByUrl: uploadImageByURL,
-        uploadByFile: uploadImageByFile
+
+        async uploadByFile(file) {
+          const formData = new FormData();
+          formData.append('img', file);
+
+          const response = await axios(import.meta.env.VITE_SERVER_DOMAIN + '/upload', {
+            method: 'POST',
+            data: formData,
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            }
+          });
+          const result = response.data;
+
+          return {
+            success: 1,
+            file: {
+              url: result.url, // the URL your server returns for displaying the image
+            }
+          };
+
+
+        },
+
       }
     }
   },

@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 
 export let activeTabRef;
 
-const InPageNavigation = ({ children, routes}) => {
+const InPageNavigation = ({ children, routes, defaultHidden = [ ]}) => {
 
      activeTabRef = useRef();
 
@@ -13,39 +13,41 @@ const InPageNavigation = ({ children, routes}) => {
     };
 
     return (
-        <>
 
-            {/* Inpage header */}
-            <div className="relative mb-8 bg-white border-b border-grey flex flex-nowrap overflow-x-auto">
+    <>
 
-                {
-                    routes.map((route, i) => {
-                            return (
-                                
-                                <button
-                                    ref={i === routeIndex ? activeTabRef : null}
-                                    key={i}
-                                    className={`p-4 px-5 capitalize ${routeIndex === i ? "text-black" : "text-dark-grey"} ${route === "trending blogs" && "md:hidden"} ${routeIndex === i && "border-b-4 border-dark-grey"}`}
-                                    onClick={() => changePageState(i)}
-                                >
+        {/* Inpage header */}
+    <div className="relative mb-8 bg-white border-b border-grey flex flex-nowrap overflow-x-auto">
 
-                                            {
-                                                route
-                                            }
+        {
+            routes.map((route, i) => {
+                return (
+                    
+                    <button
+                        ref={i === routeIndex ? activeTabRef : null}
+                        key={i}
+                        className={`p-4 px-5 capitalize ${routeIndex === i ? "text-black" : "text-dark-grey"} ${defaultHidden.includes(route) && "md:hidden"} ${routeIndex === i && "border-b-4 border-dark-grey"}`}
+                        onClick={() => changePageState(i)}
+                    >
 
-                                </button>
+                        {
+                            route
+                        }
 
-                            );
-                        })
-                }
+                    </button>
 
-            </div>
+                );
+            })
+        }
 
-            {
-                children && children[routeIndex]
-            }
+    </div>
 
-        </>
+    {
+        children && children[routeIndex]
+    }
+
+    </>
+    
     );
 };
 

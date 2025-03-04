@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import AnimationWrapper from "../common/AnimationWrapper";
 import defaultBanner from "../imgs/blog-banner.png";
-import { EditorContext } from "../pages/editor.pages";
+import { EditorContext } from "../pages/EditorPage.page";
 import logo from "../imgs/logo.png";
 import { tools } from "./tools.component";
 import EditorJS from '@editorjs/editorjs'
@@ -13,15 +13,23 @@ import { UserContext } from "../App";
 
 const BlogEditor = () => {
 
-  const { blog, blog: {title, banner, content, tags, description}, setBlog, textEditor, setTextEditor, setEditorState } = useContext(EditorContext);
-  const [imgPreview, setImgPreview] = useState(null);
+  const { blog, 
+    blog: {title, banner, content, tags, description}, 
+    setBlog, 
+    textEditor, 
+    setTextEditor, 
+    setEditorState, 
+  } = useContext(EditorContext);
+  
 
   const navigate = useNavigate();
 
   const {userAuth: { access_token }} = useContext(UserContext);
 
 
+  //todo
   useEffect(() => {
+
     if (!textEditor.isReady) {
         setTextEditor(new EditorJS({
             holderId: "textEditor",
@@ -30,6 +38,7 @@ const BlogEditor = () => {
             placeholder: "Let's write an awesome story"
         }));
     }
+    
 }, []);
 
   
@@ -46,17 +55,15 @@ const BlogEditor = () => {
 
       //This function gets triggered when file uploading.
       reader.onprogress = function () {
-        console.log("uploading");
         loadingToast = toast.loading("Uploading...");
       }
 
       //This function gets invoked when file upload complete.
       reader.onload = function () {
 
-        console.log(reader.result);
         toast.dismiss(loadingToast);
         toast.success("Uploaded Successfully ✅");
-        setBlog({...blog, banner:  reader.result});
+        setBlog({...blog, banner: reader.result});
 
       };
 
@@ -98,26 +105,26 @@ const BlogEditor = () => {
 
   function handlePublish(){
 
-    if(!banner.length){
-        return toast.error("You have to add a banner before publishing a blog");
-    }
+    // if(!banner.length){
+    //     return toast.error("You have to add a banner before publishing a blog");
+    // }
 
     if(!title.length){
         return toast.error("You have to add a title before publishing a blog");
     }
 
     if(textEditor.isReady){
-      console.log("Inside");
       textEditor
             .save()
             .then(data => {
-                    console.log(data);
+
                     if(data.blocks.length){
                         setBlog({ ...blog, content: data });
                         setEditorState("publish");
                     } else {
                         return toast.error("Write something in your blog to publish it");
                     }
+
               })
             .catch((err) => {
                     toast.error("Something went wrong in the editor", err);

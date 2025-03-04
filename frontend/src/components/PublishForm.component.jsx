@@ -1,18 +1,28 @@
+//todo: fixing the bugs in the UI
+
 import { toast } from "react-hot-toast";
 import AnimationWrapper from "../common/AnimationWrapper";
 import { useContext } from "react";
-import { EditorContext } from "../pages/editor.pages";
-import Tag from "./tags.component";
+import { EditorContext } from "../pages/EditorPage.page";
+import Tag from "./Tag.component";
 import { UserContext } from "../App";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import base64ToFile from "../common/Base64ToFile";
 
 const PublishForm = () => {
 
     const characterLimit = 200;
     const tagLimit = 10;
 
-    let { blog, blog: { banner, title, tags, description, content }, setEditorState, setBlog } = useContext(EditorContext);
+    let { 
+
+      blog, 
+      blog: { banner, title, tags, description, content }, 
+      setEditorState, setBlog, 
+
+    } = useContext(EditorContext);
+    
     const { userAuth: { access_token } } = useContext(UserContext);
 
     const navigate = useNavigate();
@@ -78,75 +88,46 @@ const PublishForm = () => {
               return toast.error("Enter at least 1 tag to help us rank your blog");
           }
       }
-  
+
+      let formData = new FormData();
+      formData.append("title", title);
+      formData.append("banner", base64ToFile(banner, "banner.jpg"));  // File upload
+      formData.append("description", description);
+      formData.append("content", JSON.stringify(content));
+      formData.append("tags", JSON.stringify(tags));
+      formData.append("draft", JSON.stringify(false));
+
       let loadingToast = toast.loading("Publishing....");
       e.target.classList.add("disable");
   
-      let blogObj = {
-          title,
-          banner,
-          description,
-          content,
-          tags,
-          draft: false
-      };
+      axios.post(import.meta.env.VITE_SERVER_DOMAIN + "/create-blog", formData, {
+          headers: {
+              "Authorization": `Bearer ${access_token}`,
+              'Content-Type': 'multipart/form-data',
+          }
+      })
+      .then(({ data }) => {
 
-      let file = base64ToFile(banner, "image.png");
+            e.target.classList.remove("disable");
     
-      console.log(file); // File object
-  
-    //   axios.post(import.meta.env.VITE_SERVER_DOMAIN + "/create-blog", blogObj, {
-    //       headers: {
-    //           "Authorization": `Bearer ${access_token}`
-    //       }
-    //   })
-    //   .then(() => {
-    //         e.target.classList.remove("disable");
+            toast.dismiss(loadingToast);
+            toast.success("Published 👍");
     
-    //         toast.dismiss(loadingToast);
-    //         toast.success("Published 👍");
-    
-    //         setTimeout(() => {
-    //             navigate("/");
-    //         }, 2000);
-    //   })
-    //   .catch(({ response }) => {
+            setTimeout(() => {
+                navigate("/");
+            }, 2000);
+            
+      })
+      .catch(({ response }) => {
 
-    //       e.target.classList.remove("disable");
-    //       toast.dismiss(loadingToast);
-    //       return toast.error(response.data.error);
+          e.target.classList.remove("disable");
+          toast.dismiss(loadingToast);
+          return toast.error(response.data.error);
 
-    //   });
+      });
 
     };
 
-    function base64ToFile(base64String, fileName) {
-        // Split the base64 string to get the mime type and the actual base64 data
-        let arr = base64String.split(',');
-        let mimeMatch = arr[0].match(/:(.*?);/);
-        let mime = mimeMatch ? mimeMatch[1] : 'image/png'; // Default to PNG if mime type is unknown
-    
-        // Decode the base64 string
-        let byteString = atob(arr[1]);
-    
-        // Create an array buffer
-        let arrayBuffer = new ArrayBuffer(byteString.length);
-        let uint8Array = new Uint8Array(arrayBuffer);
-    
-        // Fill the array buffer with binary data
-        for (let i = 0; i < byteString.length; i++) {
-            uint8Array[i] = byteString.charCodeAt(i);
-        }
-    
-        // Create a Blob with the appropriate mime type
-        let blob = new Blob([uint8Array], { type: mime });
-    
-        // Convert Blob to File
-        return new File([blob], fileName, { type: mime });
-    }
-    
-    
-  
 
     return (
         <AnimationWrapper>
@@ -206,6 +187,7 @@ const PublishForm = () => {
 
                             <p className="text-dark-grey mb-2 mt-9">Topics - (Helps in searching and ranking your blog post)</p>
 
+                            {/* tags input */}
                             <div className="relative input-box pl-2 py-2 pb-4">
 
                                 <input 

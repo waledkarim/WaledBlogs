@@ -1,8 +1,8 @@
 import { createContext, useState, useContext } from "react";
-import PublishForm from "../components/publish-form.component";
-import BlogEditor from '../components/blog-editor.component';
+import PublishForm from "../components/PublishForm.component";
+import BlogEditor from '../components/BlogEditor.component';
 import { UserContext } from '../App';
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 const blogStructure = {
 
@@ -27,7 +27,7 @@ const Editor = () => {
 
 
   return (
-    <EditorContext.Provider value={{ blog, setBlog, editorState, setEditorState, textEditor, setTextEditor }}>
+    <EditorContext.Provider value={{ blog, setBlog, editorState, setEditorState, textEditor, setTextEditor, }}>
 
       {
         access_token === null ? <Navigate to="/signin" /> :
