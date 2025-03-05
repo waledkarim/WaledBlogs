@@ -1,5 +1,3 @@
-//todo: fixing the bugs in the UI
-
 import { toast } from "react-hot-toast";
 import AnimationWrapper from "../common/AnimationWrapper";
 import { useContext } from "react";
@@ -7,7 +5,7 @@ import { EditorContext } from "../pages/EditorPage.page";
 import Tag from "./Tag.component";
 import { UserContext } from "../App";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import base64ToFile from "../common/Base64ToFile";
 
 const PublishForm = () => {
@@ -23,6 +21,10 @@ const PublishForm = () => {
 
     } = useContext(EditorContext);
     
+
+    const { blog_id } = useParams();
+
+
     const { userAuth: { access_token } } = useContext(UserContext);
 
     const navigate = useNavigate();
@@ -89,9 +91,12 @@ const PublishForm = () => {
           }
       }
 
+      console.log(banner);
+
       let formData = new FormData();
+      formData.append('id', blog_id);
       formData.append("title", title);
-      formData.append("banner", base64ToFile(banner, "banner.jpg"));  // File upload
+      formData.append("banner", banner.includes('https://res.cloudinary.com/') ? banner : base64ToFile(banner, "banner.jpg"));  // File upload
       formData.append("description", description);
       formData.append("content", JSON.stringify(content));
       formData.append("tags", JSON.stringify(tags));
@@ -182,7 +187,7 @@ const PublishForm = () => {
                             />
 
                             <p className="mt-1 text-dark-grey text-sm text-right">
-                                {characterLimit - description.length} characters left
+                                {characterLimit - description?.length} characters left
                             </p>
 
                             <p className="text-dark-grey mb-2 mt-9">Topics - (Helps in searching and ranking your blog post)</p>

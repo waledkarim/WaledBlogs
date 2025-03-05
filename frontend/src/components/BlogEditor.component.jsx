@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import AnimationWrapper from "../common/AnimationWrapper";
 import defaultBanner from "../imgs/blog-banner.png";
@@ -23,17 +23,17 @@ const BlogEditor = () => {
   
 
   const navigate = useNavigate();
+  const { blog_id } = useParams();
 
   const {userAuth: { access_token }} = useContext(UserContext);
 
 
-  //todo
   useEffect(() => {
 
     if (!textEditor.isReady) {
         setTextEditor(new EditorJS({
             holderId: "textEditor",
-            data: content,
+            data: Array.isArray(content) ? content[0] : content,
             tools,
             placeholder: "Let's write an awesome story"
         }));
@@ -156,7 +156,7 @@ const BlogEditor = () => {
                         draft: true
                     };
                 
-                    axios.post(import.meta.env.VITE_SERVER_DOMAIN + "/create-blog", blogObj, {
+                    axios.post(import.meta.env.VITE_SERVER_DOMAIN + "/create-blog", {...blogObj, id: blog_id}, {
                         headers: {
                             "Authorization": `Bearer ${access_token}`
                         }

@@ -6,6 +6,8 @@ import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import User from './Schema/User.js';
 import Blog from './Schema/Blog.js';
+import Notification from './Schema/Notification.js';
+import Comment from './Schema/Comment.js';
 import connectDB from './lib/db.js';
 import multer from 'multer';
 import cloudinary from './lib/cloudinary.js';
@@ -104,6 +106,42 @@ app.get('/latest-blogs', (req, res) => {
 });
 
 
+app.post("/get-blog", (req, res) => {
+
+    let { blog_id, draft, mode } = req.body;
+    let incrementVal = mode !== 'edit' ? 1 : 0;
+
+    Blog.findOneAndUpdate(
+        { blog_id }, 
+        { $inc: { "activity.total_reads": incrementVal } },
+        { new: true }
+    )
+    .populate("author", "personal_info.fullname personal_info.username personal_info.profile_img")
+    .select("title des content banner activity publishedAt blog_id tags")
+    .then(blog => {
+
+        User.findOneAndUpdate(
+            { "personal_info.username": blog.author.personal_info.username },
+            { $inc: { "account_info.total_reads": incrementVal } }
+        )
+        .catch(err => {
+            return res.status(500).json({ error: err.message });
+        });
+
+        if(blog.draft && !draft) {
+            return res.status(500).json({ error: 'You cannot access draft blogs' });
+          }          
+    
+        return res.status(200).json({ blog });
+
+    })
+    .catch(err => {
+
+        return res.status(500).json({ error: err.message });
+
+    });
+});
+
 app.post("/get-profile", (req, res) => {
 
     let { username } = req.body;
@@ -133,7 +171,6 @@ app.post("/search-users", (req, res) => {
             return res.status(500).json({ error: err.message });
         });
 });
-
 
 app.post('/upload', upload.single('img'), async (req, res) => {
 
@@ -235,14 +272,22 @@ app.post('/create-blog', [verifyJWT, upload.single('banner')], async (req, res) 
 
     const authorId = req.user;
     
-    let { title, description, tags, content, draft } = req.body;
+    let { title, description, tags, content, draft, id } = req.body;
+
+    let banner = req.file;
+
+    console.log(req.body);
+    console.log(banner);
+
 
     tags = JSON.parse(tags);
     content = JSON.parse(content);
     draft = JSON.parse(draft);
 
-
-    const bannerBase64String = `data:${req.file.mimetype};base64,` + req.file.buffer.toString('base64');
+    if(banner){
+        const bannerBase64String = `data:${banner.mimetype};base64,` + banner.buffer.toString('base64');
+        const uploadResponse = await cloudinary.uploader.upload(bannerBase64String);
+    }
 
     //Validation
     {
@@ -256,9 +301,9 @@ app.post('/create-blog', [verifyJWT, upload.single('banner')], async (req, res) 
                     return res.status(403).json({ error: "You must provide blog description under 200 characters" });
                 }
             
-                if (!bannerBase64String.length) {
-                    return res.status(403).json({ error: "You must provide blog banner to publish it" });
-                }
+                // if (!bannerBase64String.length) {
+                //     return res.status(403).json({ error: "You must provide blog banner to publish it" });
+                // }
             
                 if (!content.blocks.length) {
                     return res.status(403).json({ error: "There must be some blog content to publish it" });
@@ -274,42 +319,56 @@ app.post('/create-blog', [verifyJWT, upload.single('banner')], async (req, res) 
     tags = tags.map(tag => tag.toLowerCase());
 
 
-    let blog_id = title.replace(/[^a-zA-Z0-9]/g, ' ').replace(/\s+/g, "-").trim() + nanoid();
-
-    const uploadResponse = await cloudinary.uploader.upload(bannerBase64String);
+    let blog_id = id || title.replace(/[^a-zA-Z0-9]/g, ' ').replace(/\s+/g, "-").trim() + nanoid();
 
 
-    let blog = new Blog({
-        title, 
-        description, 
-        banner: uploadResponse.secure_url, 
-        content, 
-        tags, 
-        author: authorId, blog_id, 
-        draft: Boolean(draft),
-    });
+    if(id){
+        
+        Blog.findOneAndUpdate(
+            { blog_id },
+            { title, description, banner, content, tags, draft: draft ? draft : false }
+          )
+            .then(() => {
+              return res.status(200).json({ id: blog_id });
+            })
+            .catch(err => {
+              return res.status(500).json({ error: err.message });
+            });
+          
 
-    blog
-        .save()
-        .then(blog => {
-
-                let incrementVal = draft ? 0 : 1;
-
-                User.findOneAndUpdate(
-                    { _id: authorId },
-                    { $inc: { "account_info.total_posts": incrementVal }, $push: { "blogs": blog.id } }
-                )
-                .then(user => {
-                    return res.status(200).json({ id: blog.blog_id });
-                })
-                .catch(err => {
-                    return res.status(500).json({ error: "Failed to update total posts number" });
-                });
-
-        })
-        .catch((err) => {
-            return res.status(500).json("error: ", err.message);
-        })
+    }else{
+        let blog = new Blog({
+            title, 
+            description, 
+            banner: banner.includes('https://res.cloudinary.com/') ? banner : uploadResponse.secure_url, 
+            content, 
+            tags, 
+            author: authorId, blog_id, 
+            draft: Boolean(draft),
+        });
+    
+        blog
+            .save()
+            .then(blog => {
+    
+                    let incrementVal = draft ? 0 : 1;
+    
+                    User.findOneAndUpdate(
+                        { _id: authorId },
+                        { $inc: { "account_info.total_posts": incrementVal }, $push: { "blogs": blog.id } }
+                    )
+                    .then(user => {
+                        return res.status(200).json({ id: blog.blog_id });
+                    })
+                    .catch(err => {
+                        return res.status(500).json({ error: "Failed to update total posts number" });
+                    });
+    
+            })
+            .catch((err) => {
+                return res.status(500).json("error: ", err.message);
+            })
+    }
 
 });
 
@@ -354,6 +413,145 @@ app.post("/search-blogs", (req, res) => {
         });
 
 });
+
+app.post("/like-blog", verifyJWT, (req, res) => {
+    let user_id = req.user;
+    let { _id, isLikedByUser } = req.body;
+  
+    let incrementVal = !isLikedByUser ? 1 : -1;
+  
+    Blog.findOneAndUpdate(
+      { _id },
+      { $inc: { "activity.total_likes": incrementVal } },
+      { new: true }
+    )
+      .then(blog => {
+        if (!blog) {
+          return res.status(404).json({ error: "Blog not found" });
+        }
+  
+        if (!isLikedByUser) {
+          let like = new Notification({
+            type: "like",
+            blog: _id,
+            notification_for: blog.author,
+            user: user_id,
+          });
+  
+          return like.save().then(() => {
+            return res.status(200).json({ liked_by_user: true });
+          });
+        }else {
+            Notification.findOneAndDelete({ user: user_id, blog: _id, type: "like" })
+              .then(data => {
+                return res.status(200).json({ liked_by_user: false });
+              })
+              .catch(err => {
+                return res.status(500).json({ error: err.message });
+              });
+          }
+          
+      })
+      .catch(err => {
+        console.error("Error liking blog:", err);
+        return res.status(500).json({ error: err.message });
+      });
+});
+
+app.post("/isliked-by-user", verifyJWT, (req, res) => {
+    let user_id = req.user;
+    let { _id } = req.body;
+  
+    Notification.exists({ user: user_id, type: "like", blog: _id })
+      .then(result => {
+        return res.status(200).json({ result });
+      })
+      .catch(err => {
+        return res.status(500).json({ error: err.message });
+      });
+});
+
+app.post("/add-comment", verifyJWT, (req, res) => {
+    let user_id = req.user;
+    let { _id, comment, replying_to, blog_author } = req.body;
+  
+    if (!comment.length) {
+      return res.status(403).json({ error: "Write something to leave a comment" });
+    }
+  
+
+    let commentObj = new Comment({
+      blog_id: _id,
+      blog_author,
+      comment,
+      commented_by: user_id,
+      replying_to: replying_to || null, 
+    });
+  
+    commentObj
+      .save()
+      .then((commentFile) => {
+        let { comment, commentedAt, children } = commentFile;
+  
+        Blog.findOneAndUpdate(
+          { _id },
+          {
+            $push: { comments: commentFile._id },
+            $inc: {
+              "activity.total_comments": 1,
+              "activity.total_parent_comments": replying_to ? 0 : 1, 
+            },
+          }
+        ).then(() => console.log("New comment created"));
+  
+        let notificationObj = {
+          type: "comment",
+          blog: _id,
+          notification_for: blog_author,
+          user: user_id,
+          comment: commentFile._id,
+        };
+  
+        new Notification(notificationObj)
+          .save()
+          .then(() => console.log("New notification created"));
+  
+        return res.status(200).json({
+          comment,
+          commentedAt,
+          _id: commentFile._id,
+        });
+      })
+      .catch((err) => {
+        console.error("Error saving comment:", err);
+        res.status(500).json({ error: "Failed to save comment" });
+      });
+})
+
+app.post("/get-blog-comments", (req, res) => {
+
+    let { blog_id, skip } = req.body;
+  
+    let maxLimit = 5; 
+  
+    Comment.find({ blog_id, isReply: false }) 
+      .populate("commented_by", "personal_info.username personal_info.fullname personal_info.profile_img")
+      .skip(skip) 
+      .limit(maxLimit) 
+      .sort({ commentedAt: -1 }) 
+      .then(comment => {
+        return res.status(200).json(comment);
+      })
+      .catch(err => {
+        console.log(err.message);
+        return res.status(500).json({ error: err.message });
+      });
+
+
+});
+  
+  
+  
 
 
 
